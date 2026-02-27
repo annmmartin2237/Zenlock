@@ -1,0 +1,253 @@
+index3.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZenLock Detox</title>
+    
+    <link rel="manifest" href='data:application/json,{"name":"ZenLock Detox","short_name":"ZenLock","start_url":".","display":"standalone","background_color":"#fcfaf2","theme_color":"#86a789","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3596/3596144.png","sizes":"512x512","type":"image/png"}]}'>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #fcfaf2; /* Muted beige from template */
+            --text-dark: #2d3436;
+            --p-lavender: #dcd6f7;
+            --p-sage: #86a789;
+            --p-blue: #97cbdc;
+            --p-beige: #efe8d8;
+            --d-orange: #d18f77;
+            --d-teal: #335555;
+            --p-red: #ff4d4d;
+            --accent-lime: #e2ff70; /* Neon lime from second template */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            font-family: 'Inter', sans-serif;
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; overflow: hidden;
+        }
+
+        /* --- DASHBOARD GRID (Template 1 Style) --- */
+        .main-layout { width: 95%; max-width: 900px; transition: opacity 0.5s; }
+        .main-header { display: flex; align-items: center; padding: 1rem; margin-bottom: 10px; }
+        .header-logo { color: var(--p-sage); margin-right: 10px; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 15px; padding: 10px;
+        }
+
+        .card {
+            background: white; border-radius: 24px; padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 180px; position: relative;
+        }
+
+        .tall-card { grid-row: span 2; background: var(--p-blue); }
+        .card-plus { position: absolute; top: 15px; right: 15px; width: 20px; height: 20px; opacity: 0.5; }
+        
+        .card h3 { font-size: 1.4rem; font-weight: 600; line-height: 1.1; margin-bottom: 10px; }
+        .card p { font-size: 0.95rem; opacity: 0.8; }
+
+        /* Template Palette Colors */
+        .p-lavender { background: var(--p-lavender); }
+        .p-sage { background: var(--p-sage); color: white; }
+        .d-orange { background: var(--d-orange); color: white; }
+        .d-teal { background: var(--d-teal); color: var(--p-blue); }
+        .neutral-beige { background: var(--p-beige); }
+
+        /* Interactive Elements */
+        .action-btn {
+            background: var(--accent-lime); color: var(--text-dark); border: none; 
+            padding: 14px; border-radius: 50px; font-weight: 600; cursor: pointer;
+            margin-top: 15px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* --- INTERVENTION SCREEN (Template 2 Style) --- */
+        .intervention-screen {
+            position: fixed; inset: 0; background: var(--p-sage);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+
+        #doodle-canvas {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            cursor: crosshair; z-index: 1;
+        }
+
+        .overlay-ui {
+            position: relative; z-index: 2; pointer-events: none;
+            text-align: center; color: white;
+        }
+
+        #countdown { font-size: 5rem; font-weight: 300; margin-bottom: 10px; }
+        .breath-text { font-size: 1.2rem; opacity: 0.9; letter-spacing: 2px; }
+
+        .canvas-hint {
+            position: absolute; bottom: 30px; font-size: 0.8rem;
+            background: rgba(0,0,0,0.1); padding: 8px 16px; border-radius: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container { grid-template-columns: 1fr 1fr; }
+            .tall-card { grid-column: span 2; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="dashboard" class="main-layout">
+        <header class="main-header">
+            <i data-lucide="wind" class="header-logo"></i>
+            <h1 style="font-size: 1.5rem;">ZENLOCK <span style="font-weight:300">+</span></h1>
+        </header>
+
+        <main class="grid-container">
+            <div class="card tall-card">
+                <i data-lucide="plus-circle" class="card-plus"></i>
+                <div>
+                    <h3>Detox<br>Portal</h3>
+                    <p>Enter a 60-second drawing meditation to break the scroll.</p>
+                </div>
+                <button id="start-btn" class="action-btn">Initialize Break</button>
+            </div>
+
+            <div class="card p-lavender">
+                <i data-lucide="plus-circle" class="card-plus"></i>
+                <h3>Daily<br>Reflection</h3>
+                <p id="quote-text">Is your thumb more active than your mind?</p>
+            </div>
+
+            <div class="card d-orange">
+                <i data-lucide="plus-circle" class="card-plus"></i>
+                <h3>Digital<br>Streak</h3>
+                <p><span id="streak-count">0</span> Cycles</p>
+            </div>
+
+            <div class="card neutral-beige">
+                <i data-lucide="plus-circle" class="card-plus"></i>
+                <h3 style="color: var(--d-orange)">Off-Ramp<br>Tasks</h3>
+                <p id="task-text">Locked until break ends.</p>
+            </div>
+
+            <div class="card d-teal">
+                <i data-lucide="plus-circle" class="card-plus"></i>
+                <h3>Mindful<br>Space</h3>
+                <p>Presence over pixels.</p>
+            </div>
+        </main>
+    </div>
+
+    <section id="intervention" class="hidden intervention-screen">
+        <canvas id="doodle-canvas"></canvas>
+        
+        <div class="overlay-ui">
+            <div id="countdown">60</div>
+            <p id="breath-status" class="breath-text">INHALE</p>
+        </div>
+
+        <div class="canvas-hint overlay-ui">Doodle in the background to ground yourself</div>
+    </section>
+
+    <audio id="zen-audio" loop>
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-singing-bowl-gong-sound-2187.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // --- DATA & INIT ---
+        const quotes = ["Presence is a choice.", "The world is outside.", "Rest is productive.", "Look up."];
+        const canvas = document.getElementById('doodle-canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        lucide.createIcons();
+        document.getElementById('quote-text').innerText = quotes[Math.floor(Math.random()*quotes.length)];
+        document.getElementById('streak-count').innerText = localStorage.getItem('zenStreak') || 0;
+
+        // --- DOODLE LOGIC ---
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.lineWidth = 3;
+            ctx.lineCap = "round";
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function startPosition(e) { drawing = true; draw(e); }
+        function finishedPosition() { drawing = false; ctx.beginPath(); }
+        function draw(e) {
+            if (!drawing) return;
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', finishedPosition);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startPosition);
+        canvas.addEventListener('touchend', finishedPosition);
+        canvas.addEventListener('touchmove', draw);
+
+        // --- TIMER LOGIC ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('zen-audio').play();
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('intervention').classList.remove('hidden');
+            resizeCanvas(); // Ensure canvas is ready
+            
+            let time = 60;
+            const timer = setInterval(() => {
+                time--;
+                document.getElementById('countdown').innerText = time;
+                
+                // Breathing Cycle (4s inhale, 4s exhale)
+                const breathCycle = time % 8;
+                document.getElementById('breath-status').innerText = breathCycle < 4 ? "INHALE" : "EXHALE";
+
+                if(time <= 0) {
+                    clearInterval(timer);
+                    completeBreak();
+                }
+            }, 1000);
+        });
+
+        function completeBreak() {
+            document.getElementById('intervention').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#86a789', '#dcd6f7', '#e2ff70'] });
+            
+            let streak = parseInt(localStorage.getItem('zenStreak') || 0) + 1;
+            localStorage.setItem('zenStreak', streak);
+            document.getElementById('streak-count').innerText = streak;
+            document.getElementById('task-text').innerText = "Task: Go look at something green outside.";
+        }
+
+        // --- PWA SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+            const swCode = "self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));";
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+</body>
+</html>

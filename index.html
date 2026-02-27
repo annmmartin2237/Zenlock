@@ -1,0 +1,205 @@
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Doom Off-Ramp</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-primary: #0f172a;
+  --accent-red: #ef4444;
+  --accent-sage: #9CAF88;
+  --text-primary: #f8fafc;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+  text-align: center;
+}
+
+.container {
+  width: 90%;
+  max-width: 500px;
+}
+
+h1 {
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 60px;
+}
+
+.pulse-btn {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: radial-gradient(circle at 30% 30%, #ff6b6b, #7f1d1d);
+  box-shadow:
+    0 15px 40px rgba(0,0,0,0.5),
+    0 0 30px rgba(255,0,0,0.6),
+    inset 0 -8px 15px rgba(0,0,0,0.4);
+  animation: pulse 2s infinite;
+  transition: transform 0.2s ease;
+}
+
+.pulse-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 20px red; }
+  50% { transform: scale(1.05); box-shadow: 0 0 40px red; }
+  100% { transform: scale(1); box-shadow: 0 0 20px red; }
+}
+
+.breath-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 4px solid white;
+  margin: auto;
+  animation: breathe 6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.reflection {
+  margin-top: 30px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.card {
+  background: white;
+  color: black;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+}
+
+.real-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent-sage);
+  font-weight: 600;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="container" id="app">
+
+  <!-- PHASE 1 -->
+  <div id="phase1">
+    <h1>Does your potential scare you?</h1>
+    <button class="pulse-btn" onclick="startIntervention()"></button>
+  </div>
+
+</div>
+
+<audio id="ambient" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6d4c30f9b0.mp3?filename=calm-rain-ambient-110397.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const app = document.getElementById("app");
+const ambient = document.getElementById("ambient");
+
+function startIntervention() {
+  ambient.volume = 0.3;
+  ambient.play();
+
+  app.innerHTML = `
+    <div>
+      <div class="breath-circle"></div>
+      <p style="margin-top:30px;">Inhale as the circle grows...<br>Exhale as it shrinks.</p>
+      <p class="reflection" id="reflection">...</p>
+    </div>
+  `;
+
+  fetchReflection();
+  setTimeout(showTask, 60000);
+}
+
+// AI Reflection
+async function fetchReflection() {
+  try {
+    const res = await fetch("http://localhost:3000/generate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ type: "reflection" })
+    });
+    const data = await res.json();
+    document.getElementById("reflection").innerText = data.text;
+  } catch {
+    document.getElementById("reflection").innerText =
+      "You just reclaimed a full minute of your life.";
+  }
+}
+
+// AI Task
+async function showTask() {
+  try {
+    const res = await fetch("http://localhost:3000/generate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ type: "task" })
+    });
+    const data = await res.json();
+    displayTask(data.text);
+  } catch {
+    displayTask("Go drink a full glass of water slowly.");
+  }
+}
+
+function displayTask(taskText) {
+  app.innerHTML = `
+    <div class="card">
+      <h2>${taskText}</h2>
+      <button class="real-btn" onclick="completeTask()">I'm back in the real world</button>
+    </div>
+  `;
+}
+
+function completeTask() {
+  const today = new Date().toDateString();
+  let last = localStorage.getItem("lastVisit");
+  let streak = parseInt(localStorage.getItem("streak")) || 0;
+
+  if (last !== today) {
+    streak++;
+    localStorage.setItem("streak", streak);
+    localStorage.setItem("lastVisit", today);
+  }
+
+  alert(`${streak} day streak. You chose reality today.`);
+  location.reload();
+}
+
+// PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>

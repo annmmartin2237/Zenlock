@@ -1,0 +1,230 @@
+app.js
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZenLock Detox</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #fcfaf2;
+            --text-dark: #2d3436;
+            --p-lavender: #dcd6f7;
+            --p-sage: #86a789;
+            --p-blue: #97cbdc;
+            --p-beige: #efe8d8;
+            --d-orange: #d18f77;
+            --d-teal: #335555;
+            --red: #ff4d4d;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            font-family: 'Inter', sans-serif;
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; overflow: hidden;
+        }
+
+        .main-layout { width: 95%; max-width: 900px; transition: opacity 0.5s; }
+        .main-header { display: flex; align-items: center; padding: 1rem; }
+        .header-logo { color: var(--red); margin-right: 10px; }
+        .accent { color: var(--d-orange); }
+
+        /* Dashboard Grid */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 15px; padding: 10px;
+        }
+
+        .card {
+            background: white; border-radius: 24px; padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 160px;
+        }
+
+        .tall-card { grid-row: span 2; }
+        .card-icon { width: 28px; height: 28px; margin-bottom: 10px; opacity: 0.7; }
+        .card-content h3 { font-size: 1.1rem; margin-bottom: 5px; }
+        .card-content p { font-size: 0.9rem; opacity: 0.7; }
+
+        /* Themed Cards */
+        .pastel-lavender { background: var(--p-lavender); }
+        .pastel-sage { background: var(--p-sage); color: white; }
+        .streak-text p, .streak-text h3 { color: #fcfaf2; }
+        .deep-orange { background: var(--d-orange); color: white; }
+        .deep-teal { background: var(--d-teal); color: var(--p-blue); }
+        .neutral-beige { background: var(--p-beige); }
+
+        /* UI Elements */
+        .action-btn {
+            background: var(--red); color: white; border: none; padding: 12px;
+            border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 15px;
+        }
+        .action-btn-dark {
+            background: var(--d-teal); color: white; border: none; padding: 12px;
+            border-radius: 12px; cursor: pointer; margin-top: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%; padding: 10px; margin-top: 10px;
+            border-radius: 8px; border: none; background: rgba(255,255,255,0.9);
+        }
+
+        .hidden { display: none !important; }
+
+        /* Lock Screen */
+        .lock-screen {
+            position: fixed; inset: 0; background: #0f172a;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; z-index: 100;
+        }
+
+        #countdown { font-size: 4rem; font-weight: 300; position: absolute; }
+        .timer-circle { width: 250px; transform: rotate(-90deg); stroke-linecap: round; }
+        #timer-progress { stroke-dasharray: 283; stroke-dashoffset: 0; transition: 1s linear; }
+
+        #breathing-blob {
+            width: 80px; height: 80px; background: rgba(255,255,255,0.1);
+            border-radius: 50%; margin: 40px;
+            animation: breathe 8s infinite ease-in-out;
+        }
+
+        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(2.5); } }
+
+        .typewriter { overflow: hidden; border-right: .15em solid var(--d-orange); white-space: nowrap; animation: typing 3.5s steps(40, end); }
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+    </style>
+</head>
+<body>
+
+    <div id="dashboard" class="main-layout">
+        <header class="main-header">
+            <i data-lucide="leaf" class="header-logo"></i>
+            <h1>ZenLock <span class="accent">+</span></h1>
+        </header>
+
+        <main class="grid-container">
+            <div class="card stop-card tall-card">
+                <i data-lucide="brain-circuit" class="card-icon"></i>
+                <div class="card-content">
+                    <h3>Emergency Detox</h3>
+                    <p>Break the scroll loop now.</p>
+                    <div style="margin-top:15px; font-size: 0.8rem;">
+                        <input type="checkbox" id="confirm-check"> <label for="confirm-check">Ready to pause?</label>
+                    </div>
+                </div>
+                <button id="detox-button" class="action-btn">STOP</button>
+            </div>
+
+            <div class="card pastel-lavender">
+                <i data-lucide="sparkles" class="card-icon"></i>
+                <div class="card-content">
+                    <h3>Reflection</h3>
+                    <p id="ai-reflection"></p>
+                </div>
+            </div>
+
+            <div class="card pastel-sage">
+                <i data-lucide="flame" class="card-icon"></i>
+                <div class="card-content streak-text">
+                    <h3>Streak</h3>
+                    <p><span id="streak-count">0</span> days</p>
+                </div>
+            </div>
+
+            <div id="task-card" class="card deep-orange hidden">
+                <i data-lucide="footprints" class="card-icon"></i>
+                <div class="card-content">
+                    <h3>Physical Task</h3>
+                    <p id="physical-task" style="font-weight:600;"></p>
+                    <input type="text" id="proof-input" placeholder="What do you see?">
+                </div>
+                <button id="complete-btn" class="action-btn-dark">Log Proof</button>
+            </div>
+
+            <div class="card deep-teal">
+                <i data-lucide="compass" class="card-icon"></i>
+                <div class="card-content teal-text"><h3>Zen Hub</h3><p>Stay grounded.</p></div>
+            </div>
+
+            <div class="card neutral-beige">
+                <i data-lucide="moon-star" class="card-icon"></i>
+                <div class="card-content"><h3>Rest</h3><p>Culture of presence.</p></div>
+            </div>
+        </main>
+    </div>
+
+    <section id="phase-2" class="hidden lock-screen">
+        <div style="position:relative; display:flex; justify-content:center; align-items:center;">
+            <svg viewBox="0 0 100 100" class="timer-circle">
+                <circle cx="50" cy="50" r="45" stroke="#ffffff1a" stroke-width="2" fill="none" />
+                <circle id="timer-progress" cx="50" cy="50" r="45" stroke="#86a789" stroke-width="2" fill="none" />
+            </svg>
+            <div id="countdown">60</div>
+        </div>
+        <div id="breathing-blob"></div>
+        <p>Inhale... Exhale...</p>
+    </section>
+
+    <audio id="zen-audio" loop>
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-singing-bowl-gong-sound-2187.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const quotes = ["Does your potential scare you?", "Look up. Reality is rendering.", "Is this scroll worth your peace?"];
+        const tasks = [
+            { q: "Drink a glass of water.", p: "What color is the cup?" },
+            { q: "Look out the nearest window.", p: "What is the first thing you see?" },
+            { q: "Stretch your arms high.", p: "How does your back feel?" }
+        ];
+
+        // Logic
+        document.getElementById('ai-reflection').innerText = quotes[Math.floor(Math.random()*quotes.length)];
+        document.getElementById('streak-count').innerText = localStorage.getItem('zenStreak') || 0;
+        lucide.createIcons();
+
+        document.getElementById('detox-button').addEventListener('click', () => {
+            if(!document.getElementById('confirm-check').checked) return alert("Confirm readiness.");
+            if(navigator.vibrate) navigator.vibrate(200);
+            
+            document.getElementById('zen-audio').play();
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('phase-2').classList.remove('hidden');
+            
+            let time = 60;
+            const itv = setInterval(() => {
+                time--;
+                document.getElementById('countdown').innerText = time;
+                document.getElementById('timer-progress').style.strokeDashoffset = 283 - (283 * (60-time)/60);
+                if(time <= 0) {
+                    clearInterval(itv);
+                    document.getElementById('phase-2').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    document.getElementById('task-card').classList.remove('hidden');
+                    const t = tasks[Math.floor(Math.random()*tasks.length)];
+                    document.getElementById('physical-task').innerText = t.q;
+                }
+            }, 1000);
+        });
+
+        document.getElementById('complete-btn').addEventListener('click', () => {
+            if(document.getElementById('proof-input').value.length < 2) return alert("Focus on reality.");
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            localStorage.setItem('zenStreak', parseInt(localStorage.getItem('zenStreak') || 0) + 1);
+            setTimeout(() => location.reload(), 2500);
+        });
+
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+    </script>
+</body>
+</html>
